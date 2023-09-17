@@ -1,8 +1,8 @@
 package models
 
 import (
-	"fmt"
 	"image/color"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -12,35 +12,55 @@ import (
 
 var Gray = color.RGBA{R: 120, G: 124, B: 126, A: 255}
 
+const (
+	Rows      = 6
+	Columns   = 10
+	Blocksize = 30
+)
+
 type Board struct {
-	width  int
-	height int
-	cell   int
+	rows      int
+	colums    int
+	blocksize int
+	blocks    [Rows][Columns]*canvas.Rectangle
 }
 
-func NewBoard(w int, h int, c int) *Board {
+func NewBoard() *Board {
 	return (&Board{
-		width:  w,
-		height: h,
-		cell:   c,
+		rows:      Rows,
+		colums:    Columns,
+		blocksize: Blocksize,
 	})
 }
 
-func (b *Board) DrawBoard() *fyne.Container {
+func (b *Board) DrawBoard(myWindow fyne.Window) *fyne.Container {
 	board := b.TetrisRows()
+	current_tetromino := NewTetromino(b)
+	current_tetromino.DrawTetromino()
+	go func() {
+		for range time.Tick(time.Second) {
+			if !current_tetromino.CanMoveDown() {
+				current_tetromino = NewTetromino(b)
+			}
+			current_tetromino.MoveDown()
+			myWindow.Canvas().Refresh(board)
+		}
+	}()
 	return board
 }
 
 func (b *Board) TetrisRows() *fyne.Container {
-	board := container.New(layout.NewGridLayout(b.width))
+	board := container.New(layout.NewGridLayout(b.colums))
 
-	for y := 0; y < b.height; y++ {
-		for x := 0; x < b.width; x++ {
-			square := TetrisRow(b.cell)
+	for row := range b.blocks {
+		for col := range b.blocks[row] {
+			square := TetrisRow(b.blocksize)
 			board.Add(square)
-			fmt.Printf("[%d,%d] = position: %v", x, y, square.Position())
+			b.blocks[row][col] = square
+			// fmt.Printf("row: %d  colm: %d element: %v\n", row, col, square)
 		}
 	}
+
 	return board
 
 }

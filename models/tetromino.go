@@ -1,11 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"image/color"
 	"math/rand"
-
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 )
 
 type Tetromino struct {
@@ -15,54 +13,98 @@ type Tetromino struct {
 	board *Board
 }
 
-type Block struct {
-	pos       []int
-	tetromino Tetromino
-}
-
 func NewTetromino(b *Board) Tetromino {
-	shapes := [][][]bool{
-		{{true, true, true, true}},
-		{{true, true}, {true, true}},
-		{{true, true, true}, {false, true, false}},
-		{{true, true, true}, {true, false, false}},
-		{{true, true, true}, {false, false, true}},
-	}
-
-	s := shapes[rand.Intn(len(shapes))]
-
+	s := randomShape()
 	return Tetromino{
 		shape: s,
 		color: color.RGBA{R: uint8(rand.Uint32()), G: uint8(rand.Uint32()), B: uint8(rand.Uint32()), A: 255},
-		x:     b.width/2 - 2,
-		y:     0,
 		board: b,
+		x:     0,
+		y:     0,
 	}
 }
 
-func NewBlock(t Tetromino, position []int) *Block {
-	return (&Block{
-		pos:       position,
-		tetromino: t,
-	})
+func randomShape() [][]bool {
+	shapes := [][][]bool{
+		// {
+		// 	{true, true, true, true},
+		// },
+		{
+			{true, true},
+			{true, true},
+		},
+	}
+
+	return shapes[rand.Intn(len(shapes))]
+
 }
 
-func (t Tetromino) DrawTetromino() *canvas.Rectangle {
-	// for y := 0; y < t.y; y++ {
-	// 	for x := 0; x < t.x; x++ {
-	// 		if t.shape[x][y] {
-
-	// 		}
-	// 	}
-	// }
-	pos := []int{0, 0}
-	block := NewBlock(t, pos)
-	return block.DrawBlock()
+//	{
+//		{true, true, true},
+//		{false, true, false},
+//	},
+//
+//	{
+//		{true, true, true},
+//		{true, false, false}},
+//
+//	{
+//		{true, true, true},
+//		{false, false, true},
+//	},
+func (t *Tetromino) DrawTetromino() {
+	// fmt.Printf("Array: %v \n", len(t.board.blocks))
+	for row := range t.shape {
+		for col := range t.shape[row] {
+			if t.shape[row][col] {
+				t.board.blocks[t.y+row][t.x+col].FillColor = t.color
+				t.board.blocks[t.y+row][t.x+col].Refresh()
+				// fmt.Printf("row: %d  colm: %d \n", t.y+row, t.x+col)
+				// fmt.Printf("position: %v \n", t.board.blocks[t.y+row][t.x+col].Position())
+			}
+		}
+	}
 }
 
-func (b Block) DrawBlock() *canvas.Rectangle {
-	square := canvas.NewRectangle(b.tetromino.color)
-	square.SetMinSize(fyne.NewSquareSize(float32(b.tetromino.board.cell)))
-	square.Move(fyne.NewPos(1, 2))
-	return square
+func (t *Tetromino) EraseTetromino() {
+	for row := range t.shape {
+		for col := range t.shape[row] {
+			if t.shape[row][col] {
+				t.board.blocks[t.y+row][t.x+col].FillColor = Gray
+				t.board.blocks[t.y+row][t.x+col].Refresh()
+			}
+		}
+	}
+}
+
+// func (t *Tetromino) MoveLeft() {
+// 	t.EraseTetromino()
+// 	t.y++
+// 	t.DrawTetromino()
+// }
+
+// func (t *Tetromino) MoveRight() {
+// 	t.EraseTetromino()
+// 	t.y++
+// 	t.DrawTetromino()
+// }
+
+func (t *Tetromino) MoveDown() {
+	t.EraseTetromino()
+	t.y++
+	t.DrawTetromino()
+}
+
+func (t *Tetromino) CanMoveDown() bool {
+	for col := range t.shape[len(t.shape)-1] {
+		if t.shape[len(t.shape)-1][col] {
+			// fmt.Printf("position: (%d,%d), x: %d, y:%d, value1: %v, value2: %v \n", len(t.shape), col, t.x, t.y, t.y+len(t.shape) >= Rows, t.board.blocks[t.y+len(t.shape)][t.x+col].FillColor != Gray)
+			fmt.Printf("y:%d, ROWS: %v, value1: %v, result: %v\n", t.y, Rows, t.y+len(t.shape), t.y+len(t.shape) >= Rows)
+			if t.y+len(t.shape) >= Rows || t.board.blocks[t.y+len(t.shape)][t.x+col].FillColor != Gray {
+				return false
+			}
+
+		}
+	}
+	return true
 }
