@@ -1,8 +1,8 @@
 package models
 
 import (
+	"fmt"
 	"image/color"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -37,15 +37,29 @@ func (b *Board) DrawBoard(myWindow fyne.Window) *fyne.Container {
 	board := b.TetrisRows()
 	current_tetromino := NewTetromino(b)
 	current_tetromino.DrawTetromino()
-	go func() {
-		for range time.Tick(time.Second) {
-			if !current_tetromino.CanMoveDown() {
-				current_tetromino = NewTetromino(b)
-			}
+	// go func() {
+	// 	for range time.Tick(time.Second) {
+	// 		if !current_tetromino.CanMoveDown() {
+	// 			current_tetromino = NewTetromino(b)
+	// 			current_tetromino.DrawTetromino()
+	// 		} else {
+	// 			current_tetromino.MoveDown()
+	// 			myWindow.Canvas().Refresh(board)
+	// 		}
+	// 	}
+	// }()
+
+	myWindow.Canvas().SetOnTypedKey(func(keyEvent *fyne.KeyEvent) {
+		if keyEvent.Name == fyne.KeyUp {
+			fmt.Println("rotating :D")
+		} else if keyEvent.Name == fyne.KeyLeft {
+			current_tetromino.MoveLeft()
+		} else if keyEvent.Name == fyne.KeyRight {
+			current_tetromino.MoveRight()
+		} else if keyEvent.Name == fyne.KeyDown {
 			current_tetromino.MoveDown()
-			myWindow.Canvas().Refresh(board)
 		}
-	}()
+	})
 	return board
 }
 
