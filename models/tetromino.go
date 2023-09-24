@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"image/color"
 	"math/rand"
 )
@@ -15,10 +14,13 @@ type Tetromino struct {
 
 func NewTetromino(b *Board) Tetromino {
 	s := randomShape()
-	fmt.Print("NEW")
+
+	rangR := rand.Intn(255-130) + 130
+	rangG := rand.Intn(255-130) + 130
+	rangB := rand.Intn(255-130) + 130
 	return Tetromino{
 		shape: s,
-		color: color.RGBA{R: uint8(rand.Uint32()), G: uint8(rand.Uint32()), B: uint8(rand.Uint32()), A: 255},
+		color: color.RGBA{R: uint8(rangR), G: uint8(rangG), B: uint8(rangB), A: 255},
 		board: b,
 		x:     0,
 		y:     0,
@@ -38,7 +40,10 @@ func randomShape() [][]bool {
 			{true, true, true},
 			{false, true, false},
 		},
-
+		{
+			{true, true, false},
+			{false, true, true},
+		},
 		{
 			{true, true, true},
 			{true, false, false}},
@@ -54,14 +59,11 @@ func randomShape() [][]bool {
 }
 
 func (t *Tetromino) DrawTetromino() {
-	// fmt.Printf("Array: %v \n", len(t.board.blocks))
 	for row := range t.shape {
 		for col := range t.shape[row] {
 			if t.shape[row][col] {
 				t.board.blocks[t.y+row][t.x+col].FillColor = t.color
 				t.board.blocks[t.y+row][t.x+col].Refresh()
-				fmt.Printf("row: %d  colm: %d \n", t.y+row, t.x+col)
-				// fmt.Printf("position: %v \n", t.board.blocks[t.y+row][t.x+col].Position())
 			}
 		}
 	}
@@ -81,8 +83,8 @@ func (t *Tetromino) EraseTetromino() {
 func (t *Tetromino) MoveLeft() {
 	t.EraseTetromino()
 	t.x--
-	if t.x <= -1 {
-		t.x = 0
+	if !t.CheckColision() {
+		t.x++
 	}
 	t.DrawTetromino()
 }
@@ -90,11 +92,9 @@ func (t *Tetromino) MoveLeft() {
 func (t *Tetromino) MoveRight() {
 	t.EraseTetromino()
 	t.x++
-	fmt.Printf("x despues de +1: %v \n", t.x)
-	if t.x >= Columns {
-		t.x = Columns - 1
+	if !t.CheckColision() {
+		t.x--
 	}
-	fmt.Printf("x ya checado contra la rabia, %v\n", t.x)
 	t.DrawTetromino()
 }
 
@@ -106,27 +106,69 @@ func (t *Tetromino) MoveDown() {
 
 func (t *Tetromino) CheckColision() bool {
 	for row := range t.shape {
-		if t.shape[row][0] {
-			if t.x <= -1 {
-				return false
+		for col := range t.shape[row] {
+			if t.shape[row][col] {
+				if t.x+col > Columns-1 || t.x+col < 0 || t.board.blocks_state[t.y+row][t.x+col] != 0 {
+					return false
+				}
 			}
-		} else if t.shape[row][len(t.shape[row])-1] {
-			return false
 		}
 	}
 	return true
 }
 
 func (t *Tetromino) CanMoveDown() bool {
-	for col := range t.shape[len(t.shape)-1] {
-		if t.shape[len(t.shape)-1][col] {
-			// fmt.Printf("position: (%d,%d), x: %d, y:%d, value1: %v, value2: %v \n", len(t.shape), col, t.x, t.y, t.y+len(t.shape) >= Rows, t.board.blocks[t.y+len(t.shape)][t.x+col].FillColor != Gray)
-			// fmt.Printf("y:%d, ROWS: %v, value1: %v, result: %v\n", t.y, Rows, t.y+len(t.shape), t.y+len(t.shape) >= Rows)
-			if t.y+len(t.shape) >= Rows || t.board.blocks[t.y+len(t.shape)][t.x+col].FillColor != Gray {
-				return false
+	for row := range t.shape {
+		for col := range t.shape[row] {
+			if t.shape[row][col] {
+				if t.y+len(t.shape) >= Rows || t.board.blocks_state[t.y+row+1][t.x+col] != 0 {
+					return false
+				}
 			}
-
 		}
 	}
 	return true
+}
+func (t *Tetromino) LockShape() {
+	for row := range t.shape {
+		for col := range t.shape[row] {
+			if t.shape[row][col] {
+				t.board.blocks_state[t.y+row][t.x+col] = 1
+			}
+		}
+	}
+}
+
+func (t *Tetromino) RotateShape() {
+	rows := len(t.shape)
+	cols := len(t.shape[0])
+	rotated := make([][]bool, cols)
+	for i := range rotated {
+		rotated[i] = make([]bool, rows)
+	}
+	for row := 0; row < rows; row++ {
+		for col := 0; col < cols; col++ {
+			rotated[col][rows-1-row] = t.shape[row][col]
+		}
+	}
+	t.EraseTetromino()
+	t.shape = rotated
+	t.CheckWall()
+	t.DrawTetromino()
+}
+func (t *Tetromino) CheckWall() {
+	for row := range t.shape {
+		for col := range t.shape[row] {
+			if t.shape[row][col] {
+				if t.x+col < 0 {
+					t.x++
+				} else if t.x+col > Columns-1 {
+					t.x--
+				}
+			}
+		}
+	}
+	if !t.CanMoveDown() {
+		t.LockShape()
+	}
 }
