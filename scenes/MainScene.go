@@ -83,7 +83,7 @@ func (m *MainScene) DrawCredits() {
 		),
 	)
 
-	m.window.Resize(fyne.NewSize(300, 400))
+	m.window.Resize(fyne.NewSize(300, 650))
 	m.window.SetContent(container_center)
 }
 

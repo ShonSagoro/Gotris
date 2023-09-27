@@ -11,6 +11,7 @@ type DataGame struct {
 	score      int
 	level      string
 	lines      int
+	gameOver   bool
 }
 
 func NewDataGame() *DataGame {
@@ -20,6 +21,7 @@ func NewDataGame() *DataGame {
 		level:      "infinite",
 		lines:      Rows,
 		scoreLabel: sl,
+		gameOver:   false,
 	}
 }
 

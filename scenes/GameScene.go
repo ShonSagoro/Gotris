@@ -36,6 +36,7 @@ func (g *GameScene) Render() {
 func (g *GameScene) StartGame() {
 	go t.FallShape(g.window)
 	go b.CheckAndClear()
+	go g.GameOverCheck()
 	t.SetKeys(g.window)
 }
 
@@ -44,6 +45,7 @@ func DrawSceneGame(g *GameScene, board *models.Board, data *models.DataGame) {
 	container.Add(board.DrawBoard())
 	container.Add(g.DrawDataGame(data))
 	g.window.SetContent(container)
+	g.window.Resize(fyne.NewSize(300, 650))
 }
 
 func (a *GameScene) DrawDataGame(data *models.DataGame) *fyne.Container {
@@ -55,9 +57,13 @@ func (a *GameScene) DrawDataGame(data *models.DataGame) *fyne.Container {
 	linesLabel := widget.NewLabel(fmt.Sprintf("Lines: %d", data.GetLines()))
 
 	goBackMenu := widget.NewButton("Abrir Menú", func() {
+		b.SetStop(true)
 		dialog.ShowConfirm("Salir", "¿Desea salir de la aplicación?", func(response bool) {
 			if response {
 				a.BackToMenu()
+			} else {
+				b.SetStop(false)
+
 			}
 		}, a.window)
 	})
@@ -74,6 +80,21 @@ func (a *GameScene) DrawDataGame(data *models.DataGame) *fyne.Container {
 	)
 }
 
-func (a *GameScene) BackToMenu() {
-	NewMainScene(a.window)
+func (g *GameScene) BackToMenu() {
+	NewMainScene(g.window)
+}
+
+func (g *GameScene) GameOverCheck() {
+	for {
+		if !b.GetStop() {
+			if b.CheckGameOver() {
+				b.SetStop(true)
+				g.GameOver()
+			}
+		}
+	}
+}
+
+func (g *GameScene) GameOver() {
+	NewGameOverScene(g.window)
 }

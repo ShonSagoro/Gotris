@@ -22,6 +22,7 @@ type Board struct {
 	blocks       [Rows][Columns]*canvas.Rectangle
 	blocks_state [Rows][Columns]int
 	dataGame     *DataGame
+	stop         bool
 }
 
 func NewBoard(data *DataGame) *Board {
@@ -29,13 +30,14 @@ func NewBoard(data *DataGame) *Board {
 		rows:     Rows,
 		colums:   Columns,
 		dataGame: data,
+		stop:     false,
 	}
-	board.makeBlocks()
+	board.MakeBlocks()
 	return board
 
 }
 
-func (b *Board) makeBlocks() {
+func (b *Board) MakeBlocks() {
 	for row := range b.blocks {
 		for col := range b.blocks[row] {
 			square := makeSquare()
@@ -43,6 +45,12 @@ func (b *Board) makeBlocks() {
 			b.blocks_state[row][col] = 0
 		}
 	}
+}
+func (b *Board) SetStop(val bool) {
+	b.stop = val
+}
+func (b *Board) GetStop() bool {
+	return b.stop
 }
 
 func (b *Board) DrawBoard() *fyne.Container {
@@ -94,26 +102,47 @@ func (b *Board) ClearRow(row int) {
 }
 
 func (b *Board) DownPiecesOnCascade() {
-	for row := range b.blocks_state {
-		for col := range b.blocks_state[row] {
-			if b.blocks_state[row][col] == 1 {
-				if row+2 < Rows && b.blocks_state[row+1][col] == 0 {
-					b.blocks_state[row+1][col] = 1
-					b.blocks_state[row+1][col] = 0
-					b.blocks[row+1][col].FillColor = b.blocks[row][col].FillColor
-					b.blocks[row][col].FillColor = Gray
+	b.stop = true
+	for {
+		moved := false
+
+		for row := Rows - 1; row >= 0; row-- {
+			for col := 0; col < Columns; col++ {
+				if b.blocks_state[row][col] == 1 {
+					if row+1 < Rows && b.blocks_state[row+1][col] == 0 {
+						b.blocks_state[row+1][col] = 1
+						b.blocks[row+1][col].FillColor = b.blocks[row][col].FillColor
+						b.blocks_state[row][col] = 0
+						b.blocks[row][col].FillColor = Gray
+						moved = true
+					}
 				}
+			}
+		}
+
+		if !moved {
+			break
+		}
+	}
+	b.stop = false
+}
+func (b *Board) CheckAndClear() {
+	for {
+		if !b.stop {
+			rows := b.CheckBoard()
+			if rows != 0 {
+				b.dataGame.UpdateScore(rows)
+				b.DownPiecesOnCascade()
 			}
 		}
 	}
 }
 
-func (b *Board) CheckAndClear() {
-	for {
-		rows := b.CheckBoard()
-		if rows != 0 {
-			b.dataGame.UpdateScore(rows)
-			b.DownPiecesOnCascade()
+func (b *Board) CheckGameOver() bool {
+	for col := range b.blocks_state[0] {
+		if b.blocks_state[0][col] == 1 {
+			return true
 		}
 	}
+	return false
 }

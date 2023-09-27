@@ -127,6 +127,7 @@ func (t *Tetromino) CanMoveDown() bool {
 		for col := range t.shape[row] {
 			if t.shape[row][col] {
 				if t.y+len(t.shape) >= Rows || t.board.blocks_state[t.y+row+1][t.x+col] != 0 {
+					t.LockShape()
 					return false
 				}
 			}
@@ -174,32 +175,25 @@ func (t *Tetromino) CheckWall() {
 			}
 		}
 	}
-	if !t.CanMoveDown() {
-		t.LockShape()
-	}
+	t.CanMoveDown()
 }
 
 func (t *Tetromino) CheckTop() bool {
-	for row := range t.shape {
-		for col := range t.shape[row] {
-			if t.shape[row][col] {
-				if t.y >= Rows {
-					return true
-				}
-			}
-		}
+	if !t.CanMoveDown() && t.x == 0 {
+		return true
 	}
 	return false
 }
 
 func (t *Tetromino) FallShape(window fyne.Window) {
 	for range time.Tick(time.Second) {
-		if t.CanMoveDown() {
-			t.MoveDown()
-		} else {
-			t.LockShape()
-			t = NewTetromino(t.board)
-			t.SetKeys(window)
+		if !t.board.stop {
+			if t.CanMoveDown() {
+				t.MoveDown()
+			} else {
+				t = NewTetromino(t.board)
+				t.SetKeys(window)
+			}
 		}
 	}
 }
@@ -213,8 +207,10 @@ func (t *Tetromino) SetKeys(window fyne.Window) {
 		} else if keyEvent.Name == fyne.KeyRight {
 			t.MoveRight()
 		} else if keyEvent.Name == fyne.KeyDown {
-			if t.CanMoveDown() {
-				t.MoveDown()
+			if !t.board.stop {
+				if t.CanMoveDown() {
+					t.MoveDown()
+				}
 			}
 		}
 	})
