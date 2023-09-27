@@ -3,6 +3,9 @@ package models
 import (
 	"image/color"
 	"math/rand"
+	"time"
+
+	"fyne.io/fyne/v2"
 )
 
 type Tetromino struct {
@@ -12,19 +15,23 @@ type Tetromino struct {
 	board *Board
 }
 
-func NewTetromino(b *Board) Tetromino {
+func NewTetromino(b *Board) *Tetromino {
 	s := randomShape()
-
 	rangR := rand.Intn(255-130) + 130
 	rangG := rand.Intn(255-130) + 130
 	rangB := rand.Intn(255-130) + 130
-	return Tetromino{
+
+	tetromino := &Tetromino{
 		shape: s,
 		color: color.RGBA{R: uint8(rangR), G: uint8(rangG), B: uint8(rangB), A: 255},
 		board: b,
 		x:     0,
 		y:     0,
 	}
+
+	tetromino.DrawTetromino()
+
+	return tetromino
 }
 
 func randomShape() [][]bool {
@@ -53,9 +60,7 @@ func randomShape() [][]bool {
 			{false, false, true},
 		},
 	}
-
 	return shapes[rand.Intn(len(shapes))]
-
 }
 
 func (t *Tetromino) DrawTetromino() {
@@ -156,6 +161,7 @@ func (t *Tetromino) RotateShape() {
 	t.CheckWall()
 	t.DrawTetromino()
 }
+
 func (t *Tetromino) CheckWall() {
 	for row := range t.shape {
 		for col := range t.shape[row] {
@@ -171,4 +177,45 @@ func (t *Tetromino) CheckWall() {
 	if !t.CanMoveDown() {
 		t.LockShape()
 	}
+}
+
+func (t *Tetromino) CheckTop() bool {
+	for row := range t.shape {
+		for col := range t.shape[row] {
+			if t.shape[row][col] {
+				if t.y >= Rows {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (t *Tetromino) FallShape(window fyne.Window) {
+	for range time.Tick(time.Second) {
+		if t.CanMoveDown() {
+			t.MoveDown()
+		} else {
+			t.LockShape()
+			t = NewTetromino(t.board)
+			t.SetKeys(window)
+		}
+	}
+}
+
+func (t *Tetromino) SetKeys(window fyne.Window) {
+	window.Canvas().SetOnTypedKey(func(keyEvent *fyne.KeyEvent) {
+		if keyEvent.Name == fyne.KeyUp {
+			t.RotateShape()
+		} else if keyEvent.Name == fyne.KeyLeft {
+			t.MoveLeft()
+		} else if keyEvent.Name == fyne.KeyRight {
+			t.MoveRight()
+		} else if keyEvent.Name == fyne.KeyDown {
+			if t.CanMoveDown() {
+				t.MoveDown()
+			}
+		}
+	})
 }

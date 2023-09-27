@@ -2,7 +2,6 @@ package models
 
 import (
 	"image/color"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -13,84 +12,108 @@ import (
 var Gray = color.RGBA{R: 30, G: 30, B: 30, A: 255}
 
 const (
-	Rows      = 20
-	Columns   = 10
-	Blocksize = 30
+	Rows    = 20
+	Columns = 10
 )
 
 type Board struct {
 	rows         int
 	colums       int
-	blocksize    int
 	blocks       [Rows][Columns]*canvas.Rectangle
 	blocks_state [Rows][Columns]int
+	dataGame     *DataGame
 }
 
-func NewBoard() *Board {
-	return (&Board{
-		rows:      Rows,
-		colums:    Columns,
-		blocksize: Blocksize,
-	})
+func NewBoard(data *DataGame) *Board {
+	board := &Board{
+		rows:     Rows,
+		colums:   Columns,
+		dataGame: data,
+	}
+	board.makeBlocks()
+	return board
+
 }
 
-func (b *Board) DrawBoard(myWindow fyne.Window) *fyne.Container {
+func (b *Board) makeBlocks() {
+	for row := range b.blocks {
+		for col := range b.blocks[row] {
+			square := makeSquare()
+			b.blocks[row][col] = square
+			b.blocks_state[row][col] = 0
+		}
+	}
+}
+
+func (b *Board) DrawBoard() *fyne.Container {
 	board := b.TetrisRows()
-
-	current_tetromino := NewTetromino(b)
-	current_tetromino.DrawTetromino()
-
-	go func() {
-		for range time.Tick(time.Second) {
-			if !current_tetromino.CanMoveDown() {
-				current_tetromino.LockShape()
-				current_tetromino = NewTetromino(b)
-				current_tetromino.DrawTetromino()
-			} else {
-				current_tetromino.MoveDown()
-				myWindow.Canvas().Refresh(board)
-			}
-		}
-	}()
-
-	myWindow.Canvas().SetOnTypedKey(func(keyEvent *fyne.KeyEvent) {
-		if keyEvent.Name == fyne.KeyUp {
-			current_tetromino.RotateShape()
-		} else if keyEvent.Name == fyne.KeyLeft {
-			current_tetromino.MoveLeft()
-		} else if keyEvent.Name == fyne.KeyRight {
-			current_tetromino.MoveRight()
-		} else if keyEvent.Name == fyne.KeyDown {
-			if !current_tetromino.CanMoveDown() {
-				current_tetromino.LockShape()
-				current_tetromino = NewTetromino(b)
-				current_tetromino.DrawTetromino()
-			} else {
-				current_tetromino.MoveDown()
-				myWindow.Canvas().Refresh(board)
-			}
-		}
-	})
 	return board
 }
 
 func (b *Board) TetrisRows() *fyne.Container {
 	board := container.New(layout.NewGridLayout(b.colums))
-
 	for row := range b.blocks {
 		for col := range b.blocks[row] {
-			square := TetrisRow(b.blocksize)
-			board.Add(square)
-			b.blocks[row][col] = square
-			b.blocks_state[row][col] = 0
+			board.Add(b.blocks[row][col])
 		}
 	}
-
 	return board
 }
 
-func TetrisRow(size int) *canvas.Rectangle {
+func makeSquare() *canvas.Rectangle {
 	square := canvas.NewRectangle(Gray)
-	square.SetMinSize(fyne.NewSquareSize(float32(size)))
+	square.SetMinSize(fyne.NewSquareSize(float32(30)))
 	return square
+}
+
+func (b *Board) CheckBoard() int {
+	rows := 0
+	for row := range b.blocks_state {
+		if b.CheckFullRow(row) {
+			b.ClearRow(row)
+			rows++
+		}
+	}
+	return rows
+}
+
+func (b *Board) CheckFullRow(row int) bool {
+	for col := range b.blocks_state[row] {
+		if b.blocks_state[row][col] != 1 {
+			return false
+		}
+	}
+	return true
+}
+
+func (b *Board) ClearRow(row int) {
+	for col := range b.blocks_state[row] {
+		b.blocks_state[row][col] = 0
+		b.blocks[row][col].FillColor = Gray
+	}
+}
+
+func (b *Board) DownPiecesOnCascade() {
+	for row := range b.blocks_state {
+		for col := range b.blocks_state[row] {
+			if b.blocks_state[row][col] == 1 {
+				if row+2 < Rows && b.blocks_state[row+1][col] == 0 {
+					b.blocks_state[row+1][col] = 1
+					b.blocks_state[row+1][col] = 0
+					b.blocks[row+1][col].FillColor = b.blocks[row][col].FillColor
+					b.blocks[row][col].FillColor = Gray
+				}
+			}
+		}
+	}
+}
+
+func (b *Board) CheckAndClear() {
+	for {
+		rows := b.CheckBoard()
+		if rows != 0 {
+			b.dataGame.UpdateScore(rows)
+			b.DownPiecesOnCascade()
+		}
+	}
 }
