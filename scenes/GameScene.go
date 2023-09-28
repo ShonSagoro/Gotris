@@ -37,6 +37,7 @@ func (g *GameScene) StartGame() {
 	go t.FallShape(g.window)
 	go b.CheckAndClear()
 	go g.GameOverCheck()
+	go b.CheckFalseColition()
 	t.SetKeys(g.window)
 }
 

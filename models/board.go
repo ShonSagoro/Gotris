@@ -89,6 +89,9 @@ func (b *Board) CheckFullRow(row int) bool {
 	for col := range b.blocks_state[row] {
 		if b.blocks_state[row][col] != 1 {
 			return false
+		} else if b.blocks_state[row][col] == 1 && b.blocks[row][col].FillColor == Gray {
+			b.blocks_state[row][col] = 0
+			b.blocks[row][col].FillColor = Gray
 		}
 	}
 	return true
@@ -145,4 +148,19 @@ func (b *Board) CheckGameOver() bool {
 		}
 	}
 	return false
+}
+func (b *Board) CheckFalseColition() {
+	for {
+		if !b.stop {
+			for row := range b.blocks_state {
+				for col := range b.blocks_state[row] {
+					if b.blocks_state[row][col] == 1 && b.blocks[row][col].FillColor == Gray {
+						b.blocks_state[row][col] = 0
+						b.blocks[row][col].FillColor = Gray
+					}
+				}
+			}
+		}
+	}
+
 }

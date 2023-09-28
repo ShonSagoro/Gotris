@@ -157,10 +157,27 @@ func (t *Tetromino) RotateShape() {
 			rotated[col][rows-1-row] = t.shape[row][col]
 		}
 	}
-	t.EraseTetromino()
-	t.shape = rotated
-	t.CheckWall()
-	t.DrawTetromino()
+	if t.CanMoveDown() && t.CanRotate(rotated) {
+		t.EraseTetromino()
+		t.shape = rotated
+		t.CheckWall()
+		t.DrawTetromino()
+	}
+}
+
+func (t *Tetromino) CanRotate(newShape [][]bool) bool {
+	if t.x+len(newShape[0]) > Columns || t.y+len(newShape) > Rows {
+		return false
+	}
+	for row := 0; row < len(newShape); row++ {
+		for col := 0; col < len(newShape[0]); col++ {
+			if newShape[row][col] && t.board.blocks_state[t.y+row][t.x+col] != 0 {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (t *Tetromino) CheckWall() {
@@ -176,6 +193,7 @@ func (t *Tetromino) CheckWall() {
 		}
 	}
 	t.CanMoveDown()
+
 }
 
 func (t *Tetromino) CheckTop() bool {
