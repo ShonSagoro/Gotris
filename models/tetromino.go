@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"image/color"
 	"math/rand"
 	"time"
@@ -203,15 +204,22 @@ func (t *Tetromino) CheckTop() bool {
 	return false
 }
 
-func (t *Tetromino) FallShape(window fyne.Window) {
-	for range time.Tick(time.Second) {
-		if !t.board.stop {
-			if t.CanMoveDown() {
-				t.MoveDown()
-			} else {
-				t = NewTetromino(t.board)
-				t.SetKeys(window)
+func (t *Tetromino) FallShape(window fyne.Window, quit chan int) {
+	for {
+		select {
+		case <-quit:
+			fmt.Println("Fall shape is close!")
+			return
+		default:
+			if !t.board.stop {
+				if t.CanMoveDown() {
+					t.MoveDown()
+				} else {
+					t = NewTetromino(t.board)
+					t.SetKeys(window)
+				}
 			}
+			time.Sleep(200 * time.Millisecond)
 		}
 	}
 }

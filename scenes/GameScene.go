@@ -3,6 +3,7 @@ package scenes
 import (
 	"fmt"
 	"gotetris/models"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -21,35 +22,37 @@ type GameScene struct {
 
 func NewGameScene(window fyne.Window) *GameScene {
 	gameScene := &GameScene{window: window}
-	gameScene.Render()
-	gameScene.StartGame()
+	quit := make(chan int)
+	gameScene.Render(quit)
+	gameScene.StartGame(quit)
 	return gameScene
 }
 
-func (g *GameScene) Render() {
+func (g *GameScene) Render(quit chan int) {
 	d = models.NewDataGame()
 	b = models.NewBoard(d)
 	t = models.NewTetromino(b)
-	DrawSceneGame(g, b, d)
+	DrawSceneGame(g, b, d, quit)
 }
 
-func (g *GameScene) StartGame() {
-	go t.FallShape(g.window)
-	go b.CheckAndClear()
-	go g.GameOverCheck()
-	go b.CheckFalseColition()
+func (g *GameScene) StartGame(quit chan int) {
+
+	go t.FallShape(g.window, quit)
+	go b.CheckAndClear(quit)
+	go g.GameOverCheck(quit)
+	go b.CheckFalseColition(quit)
 	t.SetKeys(g.window)
 }
 
-func DrawSceneGame(g *GameScene, board *models.Board, data *models.DataGame) {
+func DrawSceneGame(g *GameScene, board *models.Board, data *models.DataGame, quit chan int) {
 	container := container.New(layout.NewHBoxLayout())
 	container.Add(board.DrawBoard())
-	container.Add(g.DrawDataGame(data))
+	container.Add(g.DrawDataGame(data, quit))
 	g.window.SetContent(container)
 	g.window.Resize(fyne.NewSize(300, 650))
 }
 
-func (a *GameScene) DrawDataGame(data *models.DataGame) *fyne.Container {
+func (a *GameScene) DrawDataGame(data *models.DataGame, quit chan int) *fyne.Container {
 	scoreLabel := widget.NewLabel("Score:")
 	scoreContainer := container.NewHBox(scoreLabel, data.GetScoreLabel())
 
@@ -62,6 +65,7 @@ func (a *GameScene) DrawDataGame(data *models.DataGame) *fyne.Container {
 		dialog.ShowConfirm("Salir", "¿Desea salir de la aplicación?", func(response bool) {
 			if response {
 				a.BackToMenu()
+				close(quit)
 			} else {
 				b.SetStop(false)
 
@@ -85,13 +89,20 @@ func (g *GameScene) BackToMenu() {
 	NewMainScene(g.window)
 }
 
-func (g *GameScene) GameOverCheck() {
+func (g *GameScene) GameOverCheck(quit chan int) {
 	for {
-		if !b.GetStop() {
-			if b.CheckGameOver() {
-				b.SetStop(true)
-				g.GameOver()
+		select {
+		case <-quit:
+			fmt.Println("Check Falase Colitiopn is closed")
+			return
+		default:
+			if !b.GetStop() {
+				if b.CheckGameOver() {
+					b.SetStop(true)
+					g.GameOver()
+				}
 			}
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }

@@ -21,7 +21,6 @@ func (o *GameOverScene) Render() {
 }
 
 func (o *GameOverScene) DrawGameOver() {
-
 	gameOverLabel := widget.NewLabelWithStyle("GAME OVER", fyne.TextAlignCenter, fyne.TextStyle{})
 	retryButton := widget.NewButton("Retry", o.Retry)
 	goBackMenuButton := widget.NewButton("Go Back Menu", o.Menu)

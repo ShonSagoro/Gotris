@@ -1,7 +1,9 @@
 package models
 
 import (
+	"fmt"
 	"image/color"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -129,14 +131,21 @@ func (b *Board) DownPiecesOnCascade() {
 	}
 	b.stop = false
 }
-func (b *Board) CheckAndClear() {
+func (b *Board) CheckAndClear(quit chan int) {
 	for {
-		if !b.stop {
-			rows := b.CheckBoard()
-			if rows != 0 {
-				b.dataGame.UpdateScore(rows)
-				b.DownPiecesOnCascade()
+		select {
+		case <-quit:
+			fmt.Println("Clear and clear is closed")
+			return
+		default:
+			if !b.stop {
+				rows := b.CheckBoard()
+				if rows != 0 {
+					b.dataGame.UpdateScore(rows)
+					b.DownPiecesOnCascade()
+				}
 			}
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }
@@ -149,17 +158,24 @@ func (b *Board) CheckGameOver() bool {
 	}
 	return false
 }
-func (b *Board) CheckFalseColition() {
+func (b *Board) CheckFalseColition(quit chan int) {
 	for {
-		if !b.stop {
-			for row := range b.blocks_state {
-				for col := range b.blocks_state[row] {
-					if b.blocks_state[row][col] == 1 && b.blocks[row][col].FillColor == Gray {
-						b.blocks_state[row][col] = 0
-						b.blocks[row][col].FillColor = Gray
+		select {
+		case <-quit:
+			fmt.Println("Check Falase Colitiopn is closed")
+			return
+		default:
+			if !b.stop {
+				for row := range b.blocks_state {
+					for col := range b.blocks_state[row] {
+						if b.blocks_state[row][col] == 1 && b.blocks[row][col].FillColor == Gray {
+							b.blocks_state[row][col] = 0
+							b.blocks[row][col].FillColor = Gray
+						}
 					}
 				}
 			}
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 
